@@ -1,0 +1,34 @@
+{
+  "name": "custom-console",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/custom-console.cjs.js",
+  "module": "dist/custom-console.esm.js",
+  "browser": "dist/custom-console.js",
+  "unpkg": "dist/custom-console.min.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "console",
+    "debug",
+    "viewer",
+    "browser-console"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Custom console viewer library",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.8",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.52.4",
+    "rollup-plugin-postcss": "^4.0.2"
+  }
+}
