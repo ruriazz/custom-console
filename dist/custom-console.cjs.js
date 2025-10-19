@@ -1,11 +1,62 @@
 'use strict';
 
+// Initialize console interception early and create global buffer
+if (!window.__customConsoleBuffer) {
+    window.__customConsoleBuffer = [];
+    
+    // Store original console methods
+    window.__originalConsole = {
+        log: console.log,
+        warn: console.warn,
+        error: console.error,
+        info: console.info,
+        debug: console.debug
+    };
+    
+    // Intercept console methods immediately
+    const interceptConsole = (type, originalMethod) => {
+        console[type] = function(...args) {
+            // Call original method first
+            originalMethod.apply(console, args);
+            
+            // Add to buffer
+            window.__customConsoleBuffer.push({
+                type,
+                args: args.map(arg => {
+                    // Handle objects that might lose reference
+                    if (typeof arg === 'object' && arg !== null) {
+                        try {
+                            return JSON.parse(JSON.stringify(arg));
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }
+                    return arg;
+                }),
+                timestamp: Date.now(),
+                time: new Date()
+            });
+            
+            // Limit buffer size
+            if (window.__customConsoleBuffer.length > 1000) {
+                window.__customConsoleBuffer.shift();
+            }
+        };
+    };
+    
+    interceptConsole('log', window.__originalConsole.log);
+    interceptConsole('warn', window.__originalConsole.warn);
+    interceptConsole('error', window.__originalConsole.error);
+    interceptConsole('info', window.__originalConsole.info);
+    interceptConsole('debug', window.__originalConsole.debug);
+}
+
 window.CustomConsole = () => {
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
-    const originalInfo = console.info;
-    const originalDebug = console.debug;
+    const originalLog = window.__originalConsole.log;
+    const originalWarn = window.__originalConsole.warn;
+    const originalError = window.__originalConsole.error;
+    const originalInfo = window.__originalConsole.info;
+    const originalDebug = window.__originalConsole.debug;
 
     let logs = [];
     let isVisible = false;
@@ -237,6 +288,13 @@ window.CustomConsole = () => {
     // Also resize on window resize
     window.addEventListener('resize', autoResizeTextarea);
 
+    // Utility function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     promptToggle.addEventListener('click', () => {
         isPromptCollapsed = !isPromptCollapsed;
 
@@ -251,7 +309,7 @@ window.CustomConsole = () => {
         }
     });
 
-    function addLog(type, args) {
+    function addLog(type, args, timestamp = null) {
         const processedArgs = args.map(arg => {
             if (typeof arg === 'object' && arg !== null) {
                 return formatObject(arg);
@@ -262,7 +320,7 @@ window.CustomConsole = () => {
         logs.push({
             type,
             message: processedArgs.join(' '),
-            time: new Date()
+            time: timestamp ? new Date(timestamp) : new Date()
         });
 
         if (logs.length > 500) {
@@ -660,6 +718,21 @@ window.CustomConsole = () => {
         }
     };
 
+    window.toggleJson = function (id) {
+        const content = document.getElementById(id);
+        const toggle = document.getElementById('toggle_' + id);
+        
+        if (content && toggle) {
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+    };
+
     function renderLogs() {
         const filtered = logs.filter(log => {
             const matchesFilter = activeFilters.has(log.type);
@@ -668,39 +741,63 @@ window.CustomConsole = () => {
             return matchesFilter && matchesSearch;
         });
 
-        logsContainer.innerHTML = filtered.map(log => `
-            <div class="console-log-entry ${log.type}">
-                ${log.message}
-            </div>
-        `).join('');
+        logsContainer.innerHTML = filtered.map(log => {
+            const timestamp = log.time.toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                fractionalSecondDigits: 3
+            });
+            
+            return `
+                <div class="console-log-entry ${log.type}">
+                    <span class="log-timestamp">${timestamp}</span>
+                    <span class="log-message">${log.message}</span>
+                </div>
+            `;
+        }).join('');
 
         logsContainer.scrollTop = logsContainer.scrollHeight;
     }
 
-    console.log = function (...args) {
-        originalLog.apply(console, args);
-        addLog('log', args);
+    // Load existing console logs from buffer
+    if (window.__customConsoleBuffer && window.__customConsoleBuffer.length > 0) {
+        window.__customConsoleBuffer.forEach(logEntry => {
+            addLog(logEntry.type, logEntry.args, logEntry.timestamp);
+        });
+    }
+
+    // Update console interception to work with our addLog function
+    const updateConsoleInterception = () => {
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            addLog('log', args);
+        };
+
+        console.warn = function (...args) {
+            originalWarn.apply(console, args);
+            addLog('warn', args);
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            addLog('error', args);
+        };
+
+        console.info = function (...args) {
+            originalInfo.apply(console, args);
+            addLog('info', args);
+        };
+
+        console.debug = function (...args) {
+            originalDebug.apply(console, args);
+            addLog('debug', args);
+        };
     };
 
-    console.warn = function (...args) {
-        originalWarn.apply(console, args);
-        addLog('warn', args);
-    };
-
-    console.error = function (...args) {
-        originalError.apply(console, args);
-        addLog('error', args);
-    };
-
-    console.info = function (...args) {
-        originalInfo.apply(console, args);
-        addLog('info', args);
-    };
-
-    console.debug = function (...args) {
-        originalDebug.apply(console, args);
-        addLog('debug', args);
-    };
+    // Apply the updated console interception
+    updateConsoleInterception();
 
     console.log('🎉 Console Viewer is ready!');
 
