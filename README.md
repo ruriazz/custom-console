@@ -2,7 +2,7 @@
 
 > A sleek, feature-rich in-browser console viewer with advanced object inspection and JavaScript execution capabilities.
 
-[![Version](https://img.shields.io/badge/version-0.1.1--beta-blue.svg)](https://github.com/ruriazz/custom-console)
+[![Version](https://img.shields.io/badge/version-0.1.2--beta-blue.svg)](https://github.com/ruriazz/custom-console)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 
 ## ✨ Features
@@ -33,10 +33,10 @@ Create a new userscript with the following template:
 // @description  Enhanced console log viewer for any website
 // @author       me@ruriazz.com
 // @match        *://*/*
-// @require      https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.js
+// @require      https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.2-beta/dist/custom-console.min.js
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
-// @resource     CUSTOM_CONSOLE https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.css
+// @resource     CUSTOM_CONSOLE https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.2-beta/dist/custom-console.min.css
 // ==/UserScript==
 
 (function () {
@@ -56,10 +56,10 @@ Create a new userscript with the following template:
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.2-beta/dist/custom-console.min.css">
 </head>
 <body>
-    <script src="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.2-beta/dist/custom-console.min.js"></script>
     <script>
         window.CustomConsole();
     </script>
