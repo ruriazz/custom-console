@@ -1,6 +1,6 @@
 {
   "name": "custom-console",
-  "version": "0.1.2-beta",
+  "version": "0.1.1-beta",
   "type": "module",
   "main": "dist/custom-console.cjs.js",
   "module": "dist/custom-console.esm.js",
