@@ -1,62 +1,91 @@
 import './main.css';
 
 // Initialize console interception early and create global buffer
-if (!window.__customConsoleBuffer) {
-    window.__customConsoleBuffer = [];
+// This code runs immediately when the script is loaded
+(function() {
+    // Check if we're in Tampermonkey environment
+    const isTampermonkey = typeof unsafeWindow !== 'undefined';
+    const targetWindow = isTampermonkey ? unsafeWindow : window;
     
-    // Store original console methods
-    window.__originalConsole = {
-        log: console.log,
-        warn: console.warn,
-        error: console.error,
-        info: console.info,
-        debug: console.debug
-    };
-    
-    // Intercept console methods immediately
-    const interceptConsole = (type, originalMethod) => {
-        console[type] = function(...args) {
-            // Call original method first
-            originalMethod.apply(console, args);
-            
-            // Add to buffer
-            window.__customConsoleBuffer.push({
-                type,
-                args: args.map(arg => {
-                    // Handle objects that might lose reference
-                    if (typeof arg === 'object' && arg !== null) {
-                        try {
-                            return JSON.parse(JSON.stringify(arg));
-                        } catch (e) {
-                            return String(arg);
-                        }
-                    }
-                    return arg;
-                }),
-                timestamp: Date.now(),
-                time: new Date()
-            });
-            
-            // Limit buffer size
-            if (window.__customConsoleBuffer.length > 1000) {
-                window.__customConsoleBuffer.shift();
-            }
+    if (!targetWindow.__customConsoleBuffer) {
+        targetWindow.__customConsoleBuffer = [];
+        
+        // Store original console methods from the target window
+        targetWindow.__originalConsole = {
+            log: targetWindow.console.log,
+            warn: targetWindow.console.warn,
+            error: targetWindow.console.error,
+            info: targetWindow.console.info,
+            debug: targetWindow.console.debug
         };
-    };
-    
-    interceptConsole('log', window.__originalConsole.log);
-    interceptConsole('warn', window.__originalConsole.warn);
-    interceptConsole('error', window.__originalConsole.error);
-    interceptConsole('info', window.__originalConsole.info);
-    interceptConsole('debug', window.__originalConsole.debug);
-}
+        
+        // Intercept console methods immediately on the target window
+        const interceptConsole = (type, originalMethod) => {
+            targetWindow.console[type] = function(...args) {
+                // Call original method first
+                originalMethod.apply(targetWindow.console, args);
+                
+                // Add to buffer
+                targetWindow.__customConsoleBuffer.push({
+                    type,
+                    args: args.map(arg => {
+                        // Handle objects that might lose reference
+                        if (typeof arg === 'object' && arg !== null) {
+                            try {
+                                // Use more robust serialization
+                                return JSON.parse(JSON.stringify(arg, (key, value) => {
+                                    if (typeof value === 'function') {
+                                        return `[Function: ${value.name || 'anonymous'}]`;
+                                    }
+                                    if (value instanceof Error) {
+                                        return `[Error: ${value.message}]`;
+                                    }
+                                    if (value === undefined) {
+                                        return '[undefined]';
+                                    }
+                                    return value;
+                                }));
+                            } catch (e) {
+                                return String(arg);
+                            }
+                        }
+                        return arg;
+                    }),
+                    timestamp: Date.now(),
+                    time: new Date()
+                });
+                
+                // Limit buffer size
+                if (targetWindow.__customConsoleBuffer.length > 1000) {
+                    targetWindow.__customConsoleBuffer.shift();
+                }
+                
+                // If CustomConsole is already initialized, add log immediately
+                if (targetWindow.__customConsoleInstance && targetWindow.__customConsoleInstance.addLogFromBuffer) {
+                    const lastLog = targetWindow.__customConsoleBuffer[targetWindow.__customConsoleBuffer.length - 1];
+                    targetWindow.__customConsoleInstance.addLogFromBuffer(lastLog);
+                }
+            };
+        };
+        
+        interceptConsole('log', targetWindow.__originalConsole.log);
+        interceptConsole('warn', targetWindow.__originalConsole.warn);
+        interceptConsole('error', targetWindow.__originalConsole.error);
+        interceptConsole('info', targetWindow.__originalConsole.info);
+        interceptConsole('debug', targetWindow.__originalConsole.debug);
+    }
+})();
 
 window.CustomConsole = () => {
-    const originalLog = window.__originalConsole.log;
-    const originalWarn = window.__originalConsole.warn;
-    const originalError = window.__originalConsole.error;
-    const originalInfo = window.__originalConsole.info;
-    const originalDebug = window.__originalConsole.debug;
+    // Check if we're in Tampermonkey environment
+    const isTampermonkey = typeof unsafeWindow !== 'undefined';
+    const targetWindow = isTampermonkey ? unsafeWindow : window;
+    
+    const originalLog = targetWindow.__originalConsole?.log || console.log;
+    const originalWarn = targetWindow.__originalConsole?.warn || console.warn;
+    const originalError = targetWindow.__originalConsole?.error || console.error;
+    const originalInfo = targetWindow.__originalConsole?.info || console.info;
+    const originalDebug = targetWindow.__originalConsole?.debug || console.debug;
 
     let logs = [];
     let isVisible = false;
@@ -761,43 +790,53 @@ window.CustomConsole = () => {
         logsContainer.scrollTop = logsContainer.scrollHeight;
     }
 
+    // Create instance methods for real-time log handling
+    const consoleInstance = {
+        addLogFromBuffer: (logEntry) => {
+            addLog(logEntry.type, logEntry.args, logEntry.timestamp);
+        }
+    };
+    
+    // Store instance reference for real-time updates
+    targetWindow.__customConsoleInstance = consoleInstance;
+    
     // Load existing console logs from buffer
-    if (window.__customConsoleBuffer && window.__customConsoleBuffer.length > 0) {
-        window.__customConsoleBuffer.forEach(logEntry => {
+    if (targetWindow.__customConsoleBuffer && targetWindow.__customConsoleBuffer.length > 0) {
+        targetWindow.__customConsoleBuffer.forEach(logEntry => {
             addLog(logEntry.type, logEntry.args, logEntry.timestamp);
         });
     }
-
-    // Update console interception to work with our addLog function
-    const updateConsoleInterception = () => {
-        console.log = function (...args) {
-            originalLog.apply(console, args);
-            addLog('log', args);
-        };
-
-        console.warn = function (...args) {
-            originalWarn.apply(console, args);
-            addLog('warn', args);
-        };
-
-        console.error = function (...args) {
-            originalError.apply(console, args);
-            addLog('error', args);
-        };
-
-        console.info = function (...args) {
-            originalInfo.apply(console, args);
-            addLog('info', args);
-        };
-
-        console.debug = function (...args) {
-            originalDebug.apply(console, args);
-            addLog('debug', args);
-        };
+    
+    // Additional fallback: try to capture recent console activity
+    // This won't capture old logs, but will ensure all new ones are caught
+    const ensureConsoleInterception = () => {
+        if (!targetWindow.__consoleIntercepted) {
+            targetWindow.__consoleIntercepted = true;
+            
+            // Double-check console interception
+            ['log', 'warn', 'error', 'info', 'debug'].forEach(method => {
+                const original = targetWindow.__originalConsole[method];
+                if (targetWindow.console[method] === original) {
+                    // Console method wasn't properly intercepted, fix it
+                    targetWindow.console[method] = function(...args) {
+                        original.apply(targetWindow.console, args);
+                        if (targetWindow.__customConsoleInstance) {
+                            targetWindow.__customConsoleInstance.addLogFromBuffer({
+                                type: method,
+                                args: args,
+                                timestamp: Date.now()
+                            });
+                        }
+                    };
+                }
+            });
+        }
     };
+    
+    ensureConsoleInterception();
 
-    // Apply the updated console interception
-    updateConsoleInterception();
+    // Note: Console interception is already handled by the early initialization code above
+    // The buffer system will automatically capture new logs and add them via addLogFromBuffer
 
     console.log('🎉 Console Viewer is ready!');
 
