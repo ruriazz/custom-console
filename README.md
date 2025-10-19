@@ -2,7 +2,7 @@
 
 > A sleek, feature-rich in-browser console viewer with advanced object inspection and JavaScript execution capabilities.
 
-[![Version](https://img.shields.io/badge/version-0.1.1--beta-blue.svg)](https://github.com/ruriazz/custom-console)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/ruriazz/custom-console/releases/tag/1.0.0)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 
 ## ✨ Features
@@ -33,19 +33,20 @@ Create a new userscript with the following template:
 // @description  Enhanced console log viewer for any website
 // @author       me@ruriazz.com
 // @match        *://*/*
-// @require      https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.js
-// @grant        GM_getResourceText
-// @grant        GM_addStyle
-// @resource     CUSTOM_CONSOLE https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.css
+// @require      https://cdn.jsdelivr.net/gh/ruriazz/custom-console@1.0.0/dist/custom-console.min.js
+// @grant        none
 // ==/UserScript==
 
 (function () {
-    'use strict';
+  'use strict';
 
-    const css = GM_getResourceText('CUSTOM_CONSOLE');
-    GM_addStyle(css);
+  const style = document.createElement('link');
+  style.rel = 'stylesheet';
+  style.href = 'https://cdn.jsdelivr.net/gh/ruriazz/custom-console@1.0.0/dist/custom-console.min.css';
 
-    window.CustomConsole();
+  style.onload = window.CustomConsole;
+
+  document.head.appendChild(style);
 })();
 ```
 
@@ -56,10 +57,10 @@ Create a new userscript with the following template:
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@1.0.0/dist/custom-console.min.css">
 </head>
 <body>
-    <script src="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@0.1.1-beta/dist/custom-console.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ruriazz/custom-console@1.0.0/dist/custom-console.min.js"></script>
     <script>
         window.CustomConsole();
     </script>
